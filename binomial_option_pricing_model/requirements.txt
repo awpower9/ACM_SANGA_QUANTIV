@@ -1,0 +1,19 @@
+# Python dependencies for Abstract Quantiv
+
+# Core framework
+dash==2.14.2
+plotly==5.18.0
+
+# Data handling
+numpy>=1.26.0
+pandas>=2.0.3
+scipy==1.11.3
+
+# Market data
+yfinance==0.2.31
+
+# C++ bindings
+pybind11==2.11.1
+
+# Optional: for better performance
+# numba==0.58.1

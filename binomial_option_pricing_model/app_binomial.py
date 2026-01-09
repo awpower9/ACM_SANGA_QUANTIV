@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 import yfinance as yf
 from datetime import datetime, timedelta
+from market_data_service import fetch_stock_data
 
 # Import the C++ binomial engine
 # Note: In production, this would be: import binomial_engine
@@ -257,10 +258,16 @@ app.layout = html.Div([
             dcc.Slider(id='num-steps', min=10, max=500, step=10, value=100, marks=None, tooltip={"placement": "bottom", "always_visible": True}, updatemode='drag')
         ], style={'marginBottom': '1.25rem'}),
 
-        html.Div([
-            html.Label("Spot Price ($)", style={'color': COLORS['text_secondary'], 'fontSize': '0.8rem', 'fontWeight': 600}),
-            dcc.Slider(id='spot-price', min=50, max=300, step=1, value=150, marks=None, tooltip={"placement": "bottom", "always_visible": True}, updatemode='drag')
-        ], style={'marginBottom': '1.25rem'}),
+        dcc.Loading(
+            id="loading-spot",
+            type="circle",
+            children=[
+                html.Div([
+                    html.Label("Spot Price ($)", style={'color': COLORS['text_secondary'], 'fontSize': '0.8rem', 'fontWeight': 600}),
+                    dcc.Slider(id='spot-price', min=50, max=300, step=1, value=150, marks=None, tooltip={"placement": "bottom", "always_visible": True}, updatemode='drag')
+                ], style={'marginBottom': '1.25rem'})
+            ]
+        ),
 
         html.Div([
             html.Label("Strike Price ($)", style={'color': COLORS['text_secondary'], 'fontSize': '0.8rem', 'fontWeight': 600}),
@@ -272,10 +279,16 @@ app.layout = html.Div([
             dcc.Slider(id='time-to-exp', min=0.01, max=2, step=0.01, value=0.5, marks=None, tooltip={"placement": "bottom", "always_visible": True}, updatemode='drag')
         ], style={'marginBottom': '1.25rem'}),
 
-        html.Div([
-            html.Label("Volatility (σ)", style={'color': COLORS['text_secondary'], 'fontSize': '0.8rem', 'fontWeight': 600}),
-            dcc.Slider(id='volatility', min=0.05, max=1.0, step=0.01, value=0.25, marks=None, tooltip={"placement": "bottom", "always_visible": True}, updatemode='drag')
-        ], style={'marginBottom': '1.25rem'}),
+        dcc.Loading(
+             id="loading-vol",
+             type="circle",
+             children=[
+                html.Div([
+                    html.Label("Volatility (σ)", style={'color': COLORS['text_secondary'], 'fontSize': '0.8rem', 'fontWeight': 600}),
+                    dcc.Slider(id='volatility', min=0.05, max=1.0, step=0.01, value=0.25, marks=None, tooltip={"placement": "bottom", "always_visible": True}, updatemode='drag')
+                ], style={'marginBottom': '1.25rem'})
+             ]
+        ),
 
         html.Div([
             html.Label("Risk-Free Rate (%)", style={'color': COLORS['text_secondary'], 'fontSize': '0.8rem', 'fontWeight': 600}),
@@ -372,27 +385,23 @@ app.layout = html.Div([
     [State('ticker-input', 'value')]
 )
 def fetch_market_data(n_clicks, ticker):
-    if n_clicks == 0:
+    if n_clicks == 0 or not ticker:
         return dash.no_update, dash.no_update, None
     
-    try:
-        stock = yf.Ticker(ticker)
-        hist = stock.history(period="1mo")
-        
-        if hist.empty:
-            return dash.no_update, dash.no_update, None
-        
-        current_price = hist['Close'].iloc[-1]
-        returns = np.log(hist['Close'] / hist['Close'].shift(1)).dropna()
-        volatility = returns.std() * np.sqrt(252)
-        
-        return round(current_price, 2), round(volatility, 2), {
-            'ticker': ticker,
-            'price': current_price,
-            'volatility': volatility
-        }
-    except:
+    # Use the new service to fetch data
+    data = fetch_stock_data(ticker)
+    
+    if data.get('error'):
+        # In a real app, we might want to show this error to the user
+        # For now, we'll just print it and do nothing
+        print(f"Error fetching data: {data['error']}")
         return dash.no_update, dash.no_update, None
+        
+    return data['price'], data['volatility'], {
+        'ticker': ticker,
+        'price': data['price'],
+        'volatility': data['volatility']
+    }
 
 # Main callback
 @app.callback(
@@ -640,4 +649,4 @@ if __name__ == '__main__':
     print(f"\n  Starting server at http://localhost:8050")
     print("="*60 + "\n")
     
-    app.run_server(debug=True, port=8050)
+    app.run(debug=True, port=8050)

@@ -1,5 +1,3 @@
-// binomial_engine.cpp
-// High-performance Binomial Tree Options Pricing Engine
 #include <cmath>
 #include <algorithm>
 #include <vector>
@@ -19,7 +17,6 @@ public:
         double rho;
     };
 
-    // American option pricing using binomial tree
     double binomial_price(double S, double K, double T, double r, 
                          double sigma, bool is_call, int steps, 
                          bool american = true) const {
@@ -33,22 +30,17 @@ public:
         const double p = (std::exp(r * dt) - d) / (u - d);
         const double discount = std::exp(-r * dt);
 
-        // Initialize option values at maturity
         std::vector<double> option_values(steps + 1);
         
-        // Calculate terminal stock prices and option values
         for (int i = 0; i <= steps; ++i) {
             double ST = S * std::pow(u, steps - i) * std::pow(d, i);
             option_values[i] = is_call ? std::max(ST - K, 0.0) : std::max(K - ST, 0.0);
         }
 
-        // Backward induction through the tree
         for (int j = steps - 1; j >= 0; --j) {
             for (int i = 0; i <= j; ++i) {
-                // Expected value (risk-neutral valuation)
                 option_values[i] = discount * (p * option_values[i] + (1 - p) * option_values[i + 1]);
                 
-                // Check for early exercise (American option)
                 if (american) {
                     double stock_price = S * std::pow(u, j - i) * std::pow(d, i);
                     double exercise_value = is_call ? 
@@ -62,30 +54,23 @@ public:
         return option_values[0];
     }
 
-    // Calculate option price with all Greeks
     OptionResult calculate_option(double S, double K, double T, double r, 
                                   double sigma, bool is_call, int steps,
                                   bool american = true) const {
         OptionResult result;
         
-        // Base price
         result.price = binomial_price(S, K, T, r, sigma, is_call, steps, american);
 
-        // Calculate Greeks using finite differences
         const double dS = S * 0.01;  // 1% change in spot
         const double dT = 1.0 / 365.0;  // 1 day change
         const double dSigma = 0.01;  // 1% change in volatility
         const double dr = 0.01;  // 1% change in rate
-
-        // Delta: ∂V/∂S
         double price_up = binomial_price(S + dS, K, T, r, sigma, is_call, steps, american);
         double price_down = binomial_price(S - dS, K, T, r, sigma, is_call, steps, american);
         result.delta = (price_up - price_down) / (2.0 * dS);
 
-        // Gamma: ∂²V/∂S²
         result.gamma = (price_up - 2.0 * result.price + price_down) / (dS * dS);
 
-        // Theta: ∂V/∂t (per day)
         if (T > dT) {
             double price_time_dec = binomial_price(S, K, T - dT, r, sigma, is_call, steps, american);
             result.theta = price_time_dec - result.price;
@@ -93,18 +78,15 @@ public:
             result.theta = -result.price / (T * 365.0);
         }
 
-        // Vega: ∂V/∂σ (per 1% change)
         double price_vol_up = binomial_price(S, K, T, r, sigma + dSigma, is_call, steps, american);
         result.vega = (price_vol_up - result.price) / (dSigma * 100.0);
 
-        // Rho: ∂V/∂r (per 1% change)
         double price_rate_up = binomial_price(S, K, T, r + dr, sigma, is_call, steps, american);
         result.rho = (price_rate_up - result.price) / (dr * 100.0);
 
         return result;
     }
 
-    // Calculate option prices for a range of spot prices (for payoff diagrams)
     std::vector<double> calculate_payoff_range(double K, double T, double r, 
                                                 double sigma, bool is_call,
                                                 double min_price, double max_price, 

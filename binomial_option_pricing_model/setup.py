@@ -12,6 +12,11 @@ class get_pybind_include(object):
     def __str__(self):
         return pybind11.get_include()
 
+if sys.platform == 'win32':
+    extra_compile_args = ['/std:c++17', '/O2']
+else:
+    extra_compile_args = ['-std=c++17', '-O3', '-march=native']
+
 ext_modules = [
     Extension(
         'binomial_engine',
@@ -20,7 +25,7 @@ ext_modules = [
             get_pybind_include(),
         ],
         language='c++',
-        extra_compile_args=['-std=c++17', '-O3', '-march=native'],
+        extra_compile_args=extra_compile_args,
     ),
 ]
 

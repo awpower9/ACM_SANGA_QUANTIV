@@ -15,18 +15,14 @@ from datetime import datetime, timedelta
 # Import the C++ binomial engine
 # Note: In production, this would be: import binomial_engine
 # For demonstration, we'll use a Python fallback
-import sys
-print(f"DEBUG: app_binomial.py starting on Python {sys.version}")
-
 try:
     import binomial_engine
     engine = binomial_engine.BinomialEngine()
     USE_CPP = True
     print("✓ Using C++ binomial engine")
-except ImportError as e:
+except ImportError:
     USE_CPP = False
-    print(f"⚠ C++ engine not available, using Python fallback. Error: {e}")
-    print(f"DEBUG: sys.path: {sys.path}")
+    print("⚠ C++ engine not available, using Python fallback")
 
 # Python fallback implementation
 class PythonBinomialEngine:
@@ -60,6 +56,56 @@ class PythonBinomialEngine:
         
         return option_values[0]
     
+    def get_tree_structure(self, S, K, T, r, sigma, is_call, steps, american=True):
+        if steps > 15:
+            steps = 15  # Limit for visualization
+            
+        dt = T / steps
+        u = np.exp(sigma * np.sqrt(dt))
+        d = 1 / u
+        p = (np.exp(r * dt) - d) / (u - d)
+        discount = np.exp(-r * dt)
+        
+        # Calculate stock prices
+        stock_prices = []
+        for j in range(steps + 1):
+            row = []
+            for i in range(j + 1):
+                price = S * (u ** (j - i)) * (d ** i)
+                row.append(price)
+            stock_prices.append(row)
+            
+        # Calculate option values
+        option_values = [[0.0] * (j + 1) for j in range(steps + 1)]
+        
+        # Terminal values
+        for i in range(steps + 1):
+            val = max(stock_prices[steps][i] - K, 0) if is_call else max(K - stock_prices[steps][i], 0)
+            option_values[steps][i] = val
+            
+        # Backward induction
+        for j in range(steps - 1, -1, -1):
+            for i in range(j + 1):
+                val = discount * (p * option_values[j + 1][i] + (1 - p) * option_values[j + 1][i + 1])
+                if american:
+                    exercise = max(stock_prices[j][i] - K, 0) if is_call else max(K - stock_prices[j][i], 0)
+                    val = max(val, exercise)
+                option_values[j][i] = val
+                
+        # Flatten to list of nodes
+        nodes = []
+        for j in range(steps + 1):
+            for i in range(j + 1):
+                node = type('TreeNode', (object,), {
+                    'step': j,
+                    'index': i,
+                    'stock_price': stock_prices[j][i],
+                    'option_value': option_values[j][i]
+                })()
+                nodes.append(node)
+                
+        return nodes
+
     def calculate_option(self, S, K, T, r, sigma, is_call, steps, american=True):
         price = self.binomial_price(S, K, T, r, sigma, is_call, steps, american)
         
@@ -112,350 +158,210 @@ COLORS = {
 }
 
 # App layout
+# App layout
 app.layout = html.Div([
-    # Header
+    # Sidebar (Controls)
     html.Div([
-        html.H1("Abstract Quantiv", style={
-            'margin': 0,
-            'fontSize': '2rem',
-            'fontWeight': '700',
-            'color': 'white'
+        # Header
+        html.Div([
+            html.H1("Abstract Quantiv", style={
+                'margin': 0,
+                'fontSize': '1.5rem',
+                'fontWeight': '700',
+                'color': 'white'
+            }),
+            html.P("Binomial Pricing Model", style={
+                'margin': '0.5rem 0 0 0',
+                'fontSize': '0.85rem',
+                'color': 'rgba(255, 255, 255, 0.8)'
+            })
+        ], style={
+            'marginBottom': '2rem',
+            'paddingBottom': '1rem',
+            'borderBottom': f'1px solid {COLORS["surface"]}'
         }),
-        html.P("Binomial Tree Options Pricing Model • American & European Options", style={
-            'margin': '0.5rem 0 0 0',
-            'fontSize': '0.95rem',
-            'color': 'rgba(255, 255, 255, 0.8)'
+
+        # Control Panel Content
+        html.H3("Parameters", style={'marginTop': 0, 'color': COLORS['primary'], 'fontSize': '1.1rem'}),
+        
+        # Ticker input
+        html.Div([
+            html.Label("Stock Ticker", style={'color': COLORS['text_secondary'], 'fontSize': '0.8rem', 'fontWeight': 600}),
+            dcc.Input(
+                id='ticker-input',
+                type='text',
+                value='AAPL',
+                placeholder='Enter ticker',
+                style={
+                    'width': '100%',
+                    'padding': '0.5rem',
+                    'background': COLORS['background'],
+                    'border': f'1px solid {COLORS["primary"]}',
+                    'color': COLORS['text'],
+                    'borderRadius': '4px',
+                    'marginTop': '0.25rem'
+                }
+            ),
+            html.Button(
+                'Fetch Live Data',
+                id='fetch-button',
+                n_clicks=0,
+                style={
+                    'marginTop': '0.5rem',
+                    'padding': '0.5rem',
+                    'background': f'linear-gradient(135deg, {COLORS["primary"]}, {COLORS["secondary"]})',
+                    'border': 'none',
+                    'color': 'white',
+                    'borderRadius': '4px',
+                    'cursor': 'pointer',
+                    'fontWeight': '600',
+                    'width': '100%',
+                    'fontSize': '0.8rem'
+                }
+            )
+        ], style={'marginBottom': '1.25rem'}),
+        
+        # Option type
+        html.Div([
+            html.Label("Option Type", style={'color': COLORS['text_secondary'], 'fontSize': '0.8rem', 'fontWeight': 600}),
+            dcc.RadioItems(
+                id='option-type',
+                options=[
+                    {'label': ' Call', 'value': 'call'},
+                    {'label': ' Put', 'value': 'put'}
+                ],
+                value='call',
+                style={'color': COLORS['text'], 'marginTop': '0.25rem', 'fontSize': '0.9rem'},
+                labelStyle={'display': 'inline-block', 'marginRight': '1rem'}
+            )
+        ], style={'marginBottom': '1.25rem'}),
+        
+        # American vs European
+        html.Div([
+            html.Label("Exercise Style", style={'color': COLORS['text_secondary'], 'fontSize': '0.8rem', 'fontWeight': 600}),
+            dcc.RadioItems(
+                id='exercise-style',
+                options=[
+                    {'label': ' American', 'value': True},
+                    {'label': ' European', 'value': False}
+                ],
+                value=True,
+                style={'color': COLORS['text'], 'marginTop': '0.25rem', 'fontSize': '0.9rem'},
+                labelStyle={'display': 'inline-block', 'marginRight': '1rem'}
+            )
+        ], style={'marginBottom': '1.25rem'}),
+        
+        # Sliders
+        html.Div([
+            html.Label("Steps", style={'color': COLORS['text_secondary'], 'fontSize': '0.8rem', 'fontWeight': 600}),
+            dcc.Slider(id='num-steps', min=10, max=500, step=10, value=100, marks=None, tooltip={"placement": "bottom", "always_visible": True}, updatemode='drag')
+        ], style={'marginBottom': '1.25rem'}),
+
+        html.Div([
+            html.Label("Spot Price ($)", style={'color': COLORS['text_secondary'], 'fontSize': '0.8rem', 'fontWeight': 600}),
+            dcc.Slider(id='spot-price', min=50, max=300, step=1, value=150, marks=None, tooltip={"placement": "bottom", "always_visible": True}, updatemode='drag')
+        ], style={'marginBottom': '1.25rem'}),
+
+        html.Div([
+            html.Label("Strike Price ($)", style={'color': COLORS['text_secondary'], 'fontSize': '0.8rem', 'fontWeight': 600}),
+            dcc.Slider(id='strike-price', min=50, max=300, step=1, value=150, marks=None, tooltip={"placement": "bottom", "always_visible": True}, updatemode='drag')
+        ], style={'marginBottom': '1.25rem'}),
+
+        html.Div([
+            html.Label("Time (Years)", style={'color': COLORS['text_secondary'], 'fontSize': '0.8rem', 'fontWeight': 600}),
+            dcc.Slider(id='time-to-exp', min=0.01, max=2, step=0.01, value=0.5, marks=None, tooltip={"placement": "bottom", "always_visible": True}, updatemode='drag')
+        ], style={'marginBottom': '1.25rem'}),
+
+        html.Div([
+            html.Label("Volatility (σ)", style={'color': COLORS['text_secondary'], 'fontSize': '0.8rem', 'fontWeight': 600}),
+            dcc.Slider(id='volatility', min=0.05, max=1.0, step=0.01, value=0.25, marks=None, tooltip={"placement": "bottom", "always_visible": True}, updatemode='drag')
+        ], style={'marginBottom': '1.25rem'}),
+
+        html.Div([
+            html.Label("Risk-Free Rate (%)", style={'color': COLORS['text_secondary'], 'fontSize': '0.8rem', 'fontWeight': 600}),
+            dcc.Slider(id='risk-free-rate', min=0, max=10, step=0.1, value=4.5, marks=None, tooltip={"placement": "bottom", "always_visible": True}, updatemode='drag')
+        ], style={'marginBottom': '1.25rem'}),
+        
+        # Model info
+        html.Div([
+            html.Div(id='model-info', style={
+                'fontSize': '0.75rem',
+                'color': COLORS['text_secondary'],
+                'lineHeight': '1.4'
+            })
+        ], style={
+            'background': COLORS['background'],
+            'borderRadius': '6px',
+            'padding': '0.75rem',
+            'borderLeft': f'3px solid {COLORS["secondary"]}'
         })
+
     ], style={
-        'background': f'linear-gradient(135deg, {COLORS["primary"]}, {COLORS["secondary"]})',
-        'padding': '2rem',
-        'boxShadow': '0 4px 20px rgba(0, 212, 255, 0.2)'
+        'width': '320px',
+        'minWidth': '320px',
+        'background': COLORS['surface'],
+        'padding': '1.5rem',
+        'height': '100vh',
+        'overflowY': 'auto',
+        'boxShadow': '2px 0 10px rgba(0,0,0,0.3)',
+        'zIndex': 10
     }),
     
-    # Main content
+    # Main Content Area
     html.Div([
-        # Control Panel
+        # Metrics container
         html.Div([
-            html.H3("Model Parameters", style={'marginTop': 0, 'color': COLORS['primary']}),
-            
-            # Ticker input
+            # Price (Primary)
             html.Div([
-                html.Label("Stock Ticker", style={'color': COLORS['text_secondary'], 'fontSize': '0.875rem', 'fontWeight': 600}),
-                dcc.Input(
-                    id='ticker-input',
-                    type='text',
-                    value='AAPL',
-                    placeholder='Enter ticker',
-                    style={
-                        'width': '100%',
-                        'padding': '0.5rem',
-                        'background': COLORS['background'],
-                        'border': f'1px solid {COLORS["primary"]}',
-                        'color': COLORS['text'],
-                        'borderRadius': '4px',
-                        'marginTop': '0.5rem'
-                    }
-                ),
-                html.Button(
-                    'Fetch Live Data',
-                    id='fetch-button',
-                    n_clicks=0,
-                    style={
-                        'marginTop': '0.5rem',
-                        'padding': '0.5rem 1rem',
-                        'background': f'linear-gradient(135deg, {COLORS["primary"]}, {COLORS["secondary"]})',
-                        'border': 'none',
-                        'color': 'white',
-                        'borderRadius': '4px',
-                        'cursor': 'pointer',
-                        'fontWeight': '600',
-                        'width': '100%'
-                    }
-                )
-            ], style={'marginBottom': '1.5rem'}),
+                html.H4("Option Price", style={'margin': '0 0 0.25rem 0', 'fontSize': '0.8rem', 'color': COLORS['text_secondary']}),
+                html.H2(id='option-price', style={'margin': 0, 'fontSize': '1.8rem', 'color': COLORS['success']})
+            ], style={'background': COLORS['surface'], 'padding': '1rem', 'borderRadius': '8px', 'flex': '1', 'marginRight': '1rem', 'borderLeft': f'4px solid {COLORS["success"]}'}),
             
-            # Option type
+            # Greeks grid
             html.Div([
-                html.Label("Option Type", style={'color': COLORS['text_secondary'], 'fontSize': '0.875rem', 'fontWeight': 600}),
-                dcc.RadioItems(
-                    id='option-type',
-                    options=[
-                        {'label': ' Call', 'value': 'call'},
-                        {'label': ' Put', 'value': 'put'}
-                    ],
-                    value='call',
-                    style={'color': COLORS['text'], 'marginTop': '0.5rem'},
-                    labelStyle={'display': 'inline-block', 'marginRight': '1rem'}
-                )
-            ], style={'marginBottom': '1.5rem'}),
-            
-            # American vs European
-            html.Div([
-                html.Label("Exercise Style", style={'color': COLORS['text_secondary'], 'fontSize': '0.875rem', 'fontWeight': 600}),
-                dcc.RadioItems(
-                    id='exercise-style',
-                    options=[
-                        {'label': ' American', 'value': True},
-                        {'label': ' European', 'value': False}
-                    ],
-                    value=True,
-                    style={'color': COLORS['text'], 'marginTop': '0.5rem'},
-                    labelStyle={'display': 'inline-block', 'marginRight': '1rem'}
-                )
-            ], style={'marginBottom': '1.5rem'}),
-            
-            # Number of steps
-            html.Div([
-                html.Label("Binomial Steps", style={'color': COLORS['text_secondary'], 'fontSize': '0.875rem', 'fontWeight': 600}),
-                dcc.Slider(
-                    id='num-steps',
-                    min=10,
-                    max=500,
-                    step=10,
-                    value=100,
-                    marks=None,
-                    tooltip={"placement": "bottom", "always_visible": True},
-                    updatemode='drag'
-                ),
-                html.Div("More steps = Higher accuracy", style={
-                    'fontSize': '0.7rem',
-                    'color': COLORS['text_secondary'],
-                    'marginTop': '0.25rem'
-                })
-            ], style={'marginBottom': '1.5rem'}),
-            
-            # Spot price
-            html.Div([
-                html.Label("Spot Price ($)", style={'color': COLORS['text_secondary'], 'fontSize': '0.875rem', 'fontWeight': 600}),
-                dcc.Slider(
-                    id='spot-price',
-                    min=50,
-                    max=300,
-                    step=1,
-                    value=150,
-                    marks=None,
-                    tooltip={"placement": "bottom", "always_visible": True},
-                    updatemode='drag'
-                )
-            ], style={'marginBottom': '1.5rem'}),
-            
-            # Strike price
-            html.Div([
-                html.Label("Strike Price ($)", style={'color': COLORS['text_secondary'], 'fontSize': '0.875rem', 'fontWeight': 600}),
-                dcc.Slider(
-                    id='strike-price',
-                    min=50,
-                    max=300,
-                    step=1,
-                    value=150,
-                    marks=None,
-                    tooltip={"placement": "bottom", "always_visible": True},
-                    updatemode='drag'
-                )
-            ], style={'marginBottom': '1.5rem'}),
-            
-            # Time to expiration
-            html.Div([
-                html.Label("Time to Expiration (Years)", style={'color': COLORS['text_secondary'], 'fontSize': '0.875rem', 'fontWeight': 600}),
-                dcc.Slider(
-                    id='time-to-exp',
-                    min=0.01,
-                    max=2,
-                    step=0.01,
-                    value=0.5,
-                    marks=None,
-                    tooltip={"placement": "bottom", "always_visible": True},
-                    updatemode='drag'
-                )
-            ], style={'marginBottom': '1.5rem'}),
-            
-            # Volatility
-            html.Div([
-                html.Label("Volatility (σ)", style={'color': COLORS['text_secondary'], 'fontSize': '0.875rem', 'fontWeight': 600}),
-                dcc.Slider(
-                    id='volatility',
-                    min=0.05,
-                    max=1.0,
-                    step=0.01,
-                    value=0.25,
-                    marks=None,
-                    tooltip={"placement": "bottom", "always_visible": True},
-                    updatemode='drag'
-                )
-            ], style={'marginBottom': '1.5rem'}),
-            
-            # Risk-free rate
-            html.Div([
-                html.Label("Risk-Free Rate (%)", style={'color': COLORS['text_secondary'], 'fontSize': '0.875rem', 'fontWeight': 600}),
-                dcc.Slider(
-                    id='risk-free-rate',
-                    min=0,
-                    max=10,
-                    step=0.1,
-                    value=4.5,
-                    marks=None,
-                    tooltip={"placement": "bottom", "always_visible": True},
-                    updatemode='drag'
-                )
-            ], style={'marginBottom': '1.5rem'}),
-            
-            # Model info
-            html.Div([
-                html.Div("MODEL: BINOMIAL TREE", style={
-                    'fontSize': '0.75rem',
-                    'color': COLORS['text_secondary'],
-                    'marginBottom': '0.5rem',
-                    'fontWeight': 600
-                }),
-                html.Div(id='model-info', style={
-                    'fontSize': '0.85rem',
-                    'color': COLORS['text'],
-                    'lineHeight': '1.5'
-                })
-            ], style={
-                'background': COLORS['background'],
-                'borderRadius': '8px',
-                'padding': '1rem',
-                'borderLeft': f'4px solid {COLORS["secondary"]}'
-            })
-            
-        ], style={
-            'background': COLORS['surface'],
-            'borderRadius': '12px',
-            'padding': '1.5rem',
-            'width': '25%',
-            'display': 'inline-block',
-            'verticalAlign': 'top',
-            'margin': '1rem'
-        }),
+                html.Div([html.Span("Delta", style={'color': COLORS['text_secondary'], 'fontSize': '0.8rem'}), html.Br(), html.Span(id='delta', style={'fontWeight': 'bold', 'color': COLORS['primary']})], style={'flex': 1}),
+                html.Div([html.Span("Gamma", style={'color': COLORS['text_secondary'], 'fontSize': '0.8rem'}), html.Br(), html.Span(id='gamma', style={'fontWeight': 'bold', 'color': COLORS['primary']})], style={'flex': 1}),
+                html.Div([html.Span("Theta", style={'color': COLORS['text_secondary'], 'fontSize': '0.8rem'}), html.Br(), html.Span(id='theta', style={'fontWeight': 'bold', 'color': COLORS['danger']})], style={'flex': 1}),
+                html.Div([html.Span("Vega", style={'color': COLORS['text_secondary'], 'fontSize': '0.8rem'}), html.Br(), html.Span(id='vega', style={'fontWeight': 'bold', 'color': COLORS['success']})], style={'flex': 1}),
+                html.Div([html.Span("Rho", style={'color': COLORS['text_secondary'], 'fontSize': '0.8rem'}), html.Br(), html.Span(id='rho', style={'fontWeight': 'bold', 'color': COLORS['primary']})], style={'flex': 1}),
+            ], style={'background': COLORS['surface'], 'padding': '1rem', 'borderRadius': '8px', 'flex': '3', 'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center'})
+        ], style={'display': 'flex', 'marginBottom': '1.5rem'}),
         
         # Visualization area
         html.Div([
-            # Metrics cards
+            # Tree Visualization (New)
             html.Div([
-                html.Div([
-                    html.H4("Option Price", style={'margin': '0 0 0.5rem 0', 'fontSize': '0.875rem', 'color': COLORS['text_secondary']}),
-                    html.H2(id='option-price', style={'margin': 0, 'color': COLORS['success']})
-                ], style={
-                    'background': COLORS['surface'],
-                    'borderRadius': '8px',
-                    'padding': '1rem',
-                    'borderLeft': f'4px solid {COLORS["success"]}',
-                    'width': '15%',
-                    'display': 'inline-block',
-                    'margin': '0.5rem'
-                }),
-                
-                html.Div([
-                    html.H4("Delta (Δ)", style={'margin': '0 0 0.5rem 0', 'fontSize': '0.875rem', 'color': COLORS['text_secondary']}),
-                    html.H2(id='delta', style={'margin': 0, 'color': COLORS['primary']})
-                ], style={
-                    'background': COLORS['surface'],
-                    'borderRadius': '8px',
-                    'padding': '1rem',
-                    'borderLeft': f'4px solid {COLORS["primary"]}',
-                    'width': '15%',
-                    'display': 'inline-block',
-                    'margin': '0.5rem'
-                }),
-                
-                html.Div([
-                    html.H4("Gamma (Γ)", style={'margin': '0 0 0.5rem 0', 'fontSize': '0.875rem', 'color': COLORS['text_secondary']}),
-                    html.H2(id='gamma', style={'margin': 0, 'color': COLORS['primary']})
-                ], style={
-                    'background': COLORS['surface'],
-                    'borderRadius': '8px',
-                    'padding': '1rem',
-                    'borderLeft': f'4px solid {COLORS["primary"]}',
-                    'width': '15%',
-                    'display': 'inline-block',
-                    'margin': '0.5rem'
-                }),
-                
-                html.Div([
-                    html.H4("Theta (Θ)", style={'margin': '0 0 0.5rem 0', 'fontSize': '0.875rem', 'color': COLORS['text_secondary']}),
-                    html.H2(id='theta', style={'margin': 0, 'color': COLORS['danger']})
-                ], style={
-                    'background': COLORS['surface'],
-                    'borderRadius': '8px',
-                    'padding': '1rem',
-                    'borderLeft': f'4px solid {COLORS["danger"]}',
-                    'width': '15%',
-                    'display': 'inline-block',
-                    'margin': '0.5rem'
-                }),
-                
-                html.Div([
-                    html.H4("Vega (ν)", style={'margin': '0 0 0.5rem 0', 'fontSize': '0.875rem', 'color': COLORS['text_secondary']}),
-                    html.H2(id='vega', style={'margin': 0, 'color': COLORS['primary']})
-                ], style={
-                    'background': COLORS['surface'],
-                    'borderRadius': '8px',
-                    'padding': '1rem',
-                    'borderLeft': f'4px solid {COLORS["primary"]}',
-                    'width': '15%',
-                    'display': 'inline-block',
-                    'margin': '0.5rem'
-                }),
-                
-                html.Div([
-                    html.H4("Rho (ρ)", style={'margin': '0 0 0.5rem 0', 'fontSize': '0.875rem', 'color': COLORS['text_secondary']}),
-                    html.H2(id='rho', style={'margin': 0, 'color': COLORS['primary']})
-                ], style={
-                    'background': COLORS['surface'],
-                    'borderRadius': '8px',
-                    'padding': '1rem',
-                    'borderLeft': f'4px solid {COLORS["primary"]}',
-                    'width': '15%',
-                    'display': 'inline-block',
-                    'margin': '0.5rem'
-                }),
-            ], style={'marginBottom': '1rem'}),
-            
-            # Charts
+                dcc.Graph(id='tree-viz', style={'height': '400px'}, config={'displayModeBar': False})
+            ], style={'background': COLORS['surface'], 'borderRadius': '8px', 'padding': '1rem', 'marginBottom': '1rem'}),
+
+            # Payoff Diagram
             html.Div([
-                dcc.Graph(id='payoff-diagram', style={'height': '400px'})
-            ], style={
-                'background': COLORS['surface'],
-                'borderRadius': '12px',
-                'padding': '1.5rem',
-                'marginBottom': '1rem'
-            }),
+                dcc.Graph(id='payoff-diagram', style={'height': '350px'}, config={'displayModeBar': False})
+            ], style={'background': COLORS['surface'], 'borderRadius': '8px', 'padding': '1rem', 'marginBottom': '1rem'}),
             
+            # Greeks Chart (Full Width)
             html.Div([
-                html.Div([
-                    dcc.Graph(id='greeks-chart', style={'height': '400px'})
-                ], style={'width': '48%', 'display': 'inline-block'}),
-                
-                html.Div([
-                    dcc.Graph(id='vol-surface', style={'height': '400px'})
-                ], style={'width': '48%', 'display': 'inline-block', 'marginLeft': '2%'})
-            ], style={
-                'background': COLORS['surface'],
-                'borderRadius': '12px',
-                'padding': '1.5rem'
-            }),
-            
-        ], style={'width': '73%', 'display': 'inline-block', 'marginLeft': '0%', 'verticalAlign': 'top'}),
+                dcc.Graph(id='greeks-chart', style={'height': '350px'}, config={'displayModeBar': False})
+            ], style={'background': COLORS['surface'], 'borderRadius': '8px', 'padding': '1rem', 'marginBottom': '1rem'}),
+
+            # Volatility Surface (Full Width)
+            html.Div([
+                dcc.Graph(id='vol-surface', style={'height': '400px'}, config={'displayModeBar': False})
+            ], style={'background': COLORS['surface'], 'borderRadius': '8px', 'padding': '1rem'})
+        ])
         
-    ], style={'padding': '0'}),
-    
-    # Footer
-    html.Div([
-        html.P("Built with Binomial Tree Model (Cox-Ross-Rubinstein) • Supports American Options", style={'margin': 0}),
-        html.P("🌲 High-performance C++ backend • Real-time pricing & Greeks", style={'marginTop': '0.5rem'})
     ], style={
-        'textAlign': 'center',
+        'flex': '1',
+        'height': '100vh',
+        'overflowY': 'auto',
         'padding': '2rem',
-        'color': COLORS['text_secondary'],
-        'fontSize': '0.875rem',
         'background': COLORS['background']
     }),
     
     # Hidden div to store fetched data
     dcc.Store(id='market-data')
     
-], style={'background': COLORS['background'], 'minHeight': '100vh'})
+], style={'display': 'flex', 'height': '100vh', 'overflow': 'hidden', 'fontFamily': 'sans-serif'})
 
 # Callback to fetch live market data
 @app.callback(
@@ -497,6 +403,7 @@ def fetch_market_data(n_clicks, ticker):
      Output('vega', 'children'),
      Output('rho', 'children'),
      Output('model-info', 'children'),
+     Output('tree-viz', 'figure'),
      Output('payoff-diagram', 'figure'),
      Output('greeks-chart', 'figure'),
      Output('vol-surface', 'figure')],
@@ -629,11 +536,99 @@ def update_dashboard(option_type, american, S, K, T, sigma, r_percent, steps):
         ),
         paper_bgcolor=COLORS['surface'],
         font=dict(color=COLORS['text']),
-        height=400
+        height=400,
+        margin=dict(l=0, r=0, b=0, t=30)
     )
     
+    # --- Tree Visualizer ---
+    viz_steps = min(steps, 10) # Limit depth for visualization
+    tree_nodes = engine.get_tree_structure(S, K, T, r, sigma, is_call, viz_steps, american)
+    
+    tree_fig = go.Figure()
+    
+    # Draw edges first (so lines are behind nodes)
+    # This is a bit manual since we have a flat list of nodes, but strictly:
+    # Node at (step, index) connects to (step+1, index) and (step+1, index+1)
+    
+    edge_x = []
+    edge_y = []
+    
+    # Helper to find node by step/index
+    # Optimization: since tree is small, simple lookup is fine, or math calculation
+    # Since nodes are generated in order, we can map (step, index) -> node object
+    node_map = {}
+    for n in tree_nodes:
+        node_map[(n.step, n.index)] = n
+        
+    for n in tree_nodes:
+        if n.step < viz_steps:
+            # Connect to up move (step+1, index)
+            up_node = node_map.get((n.step + 1, n.index))
+            if up_node:
+                edge_x.extend([n.step, n.step + 1, None])
+                edge_y.extend([n.stock_price, up_node.stock_price, None])
+            
+            # Connect to down move (step+1, index+1)
+            down_node = node_map.get((n.step + 1, n.index + 1))
+            if down_node:
+                edge_x.extend([n.step, n.step + 1, None])
+                edge_y.extend([n.stock_price, down_node.stock_price, None])
+                
+    tree_fig.add_trace(go.Scatter(
+        x=edge_x, y=edge_y,
+        mode='lines',
+        line=dict(color='rgba(255, 255, 255, 0.2)', width=1),
+        hoverinfo='none',
+        showlegend=False
+    ))
+    
+    # Draw nodes
+    node_x = [n.step for n in tree_nodes]
+    node_y = [n.stock_price for n in tree_nodes]
+    node_vals = [n.option_value for n in tree_nodes]
+    node_text = [
+        f"Step: {n.step}<br>Spot: ${n.stock_price:.2f}<br>Option: ${n.option_value:.2f}" 
+        for n in tree_nodes
+    ]
+    
+    # Highlight early exercise nodes (approximate logic for visual flair)
+    # Exact check would need comparison with intrinsic
+    marker_colors = []
+    intrinsic_vals = []
+    for n in tree_nodes:
+        intrinsic = max(n.stock_price - K, 0) if is_call else max(K - n.stock_price, 0)
+        # Floating point tolerance
+        if american and n.option_value > 0 and abs(n.option_value - intrinsic) < 0.001 and n.step < viz_steps:
+             marker_colors.append(COLORS['success']) # Green for exercise
+        else:
+             marker_colors.append(COLORS['primary']) # Blue for continuation
+    
+    tree_fig.add_trace(go.Scatter(
+        x=node_x, y=node_y,
+        mode='markers',
+        marker=dict(
+            size=10,
+            color=marker_colors,
+            line=dict(color='white', width=1)
+        ),
+        text=node_text,
+        hoverinfo='text',
+        name='Nodes'
+    ))
+    
+    tree_fig.update_layout(
+        title=f"Binomial Tree Structure (First {viz_steps} Steps)",
+        xaxis_title="Step",
+        yaxis_title="Stock Price ($)",
+        paper_bgcolor=COLORS['surface'],
+        plot_bgcolor=COLORS['background'],
+        font=dict(color=COLORS['text']),
+        showlegend=False,
+        margin=dict(l=40, r=40, b=40, t=40)
+    )
+
     return (price_text, delta_text, gamma_text, theta_text, vega_text, rho_text,
-            model_info_text, payoff_fig, greeks_fig, vol_fig)
+            model_info_text, tree_fig, payoff_fig, greeks_fig, vol_fig)
 
 if __name__ == '__main__':
     print("\n" + "="*60)

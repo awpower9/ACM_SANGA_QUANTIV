@@ -1,36 +1,105 @@
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
-
 body {
-    margin: 0;
-    overflow: hidden;
+   background-color: #131418;
+   background-image:
+               radial-gradient(circle at 10% 20%,rgba(236, 108, 16, 0.38) 0%,transparent 40%),
+               radial-gradient(circle at 90% 100%,rgb(77, 142, 246,0.38)0%,transparent 40%);
+   margin:0;
+   width: 100vw;
+   height: 100vh;
+   background-repeat: no-repeat;
+   color: aliceblue;
+   padding:0;
 }
 
-/* Custom Scrollbar Styling matching existing theme */
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+.slider .rc-slider-track{
+    background-color: rgb(106, 27, 176);
 }
 
-::-webkit-scrollbar-track {
-    background: #0a0e27;
+.slider .rc-slider-rail{
+    background-color: white;
 }
 
-::-webkit-scrollbar-thumb {
-    background: #2c3e50;
-    border-radius: 4px;
+.Select-control {
+    background-color: transparent !important;
+    border: 1px solid rgba(255,255,255,0.3);
 }
 
-::-webkit-scrollbar-thumb:hover {
-    background: #00d4ff;
-    /* Theme Primary */
+.Select-value-label {
+    color: white !important;
 }
 
-/* For Firefox */
-* {
-    scrollbar-width: thin;
-    scrollbar-color: #2c3e50 #0a0e27;
+.Select-placeholder {
+    color: rgba(255,255,255,0.6) !important;
 }
+
+.Select-arrow {
+    border-color: white transparent !important;
+}
+
+.Select-menu-outer {
+    background-color: rgba(0,0,0,0.0) !important;
+    border: none;
+}
+
+.Select-option {
+    background-color: transparent !important;
+    color: white !important;
+}
+
+.models1{
+    width: 17vw;
+    margin:80px 10px;
+    background-color:black;
+    background-repeat: no-repeat;
+    background-image: radial-gradient(circle at 10% 10%,rgba(240,100,30,0.5)0%,transparent 40%),
+                      radial-gradient(circle at 90% 90%,rgba(30,100,250,0.5)0%,transparent 40%);
+    padding:10px 0;
+    height: 300px;
+    border-radius: 30px;
+}
+
+.sliders{
+    margin:10px 10px;
+    background-color:black;
+    width:23vw;
+    height:430px;
+    border-radius:30px;
+    padding:0 0;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-evenly;
+    background-image:radial-gradient(circle at 10% 10%,rgba(240,102,18,0.5)0%,transparent 40%),
+                    radial-gradient(circle at 90% 90%,rgba(30,140,240,0.4)0%,transparent 40%);
+    background-repeat: no-repeat;
+       
+}
+
+
+
+.tree{
+    background-repeat: no-repeat;
+    background-image: radial-gradient(circle at 10% 90%,rgba(250,102,18,0.5)0%,transparent 40%),
+                     radial-gradient(circle at 90% 10%,rgba(30,130,250,0.4)0%,transparent 40%);
+}
+
+.optionprice{
+    margin: 0 10px ;
+    background-color:black;
+    width:23vw;
+    height:180px;
+    border-radius:30px;
+    padding: 0;
+    font-size: 40px;
+    background-repeat: no-repeat;
+    background-image:radial-gradient(circle at 10% 10%,rgba(250,102,30,0.9)0%,transparent 80%),
+                     radial-gradient(circle at 90% 90%,rgba(30,100,250,0.9)0%,transparent 80%);
+}
+
+.inputs{
+    height: 80vh;
+    display: flex;
+    flex-direction: column;
+    justify-content:space-evenly;
+    margin:auto;
+}
+

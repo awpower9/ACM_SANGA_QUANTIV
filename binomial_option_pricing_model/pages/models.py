@@ -130,7 +130,7 @@ layout = html.Div([
     
     # Left section
     html.Div([
-        html.P("Select Model", style={"font-size":"25px","padding":"0 10px", "color": "white"}),
+        html.P("Select Model", style={"fontSize":"25px", "color": "white", "textAlign": "center", "marginBottom": "20px"}),
         dcc.Dropdown(
             id='model-selector',
             options=[
@@ -139,12 +139,17 @@ layout = html.Div([
                {"label":"Trinomial Model", "value":"trinomial"}
             ],
             value="binomial",
-            clearable=False
+            clearable=False,
+            style={'width': '80%', 'margin': '0 auto'}
         )
     ], className="models1", style={
         "width": "15vw", 
         "margin": "40px 10px",
-        "height": "80vh" # Taller to match others
+        "height": "80vh",
+        "display": "flex",
+        "flexDirection": "column",
+        "alignItems": "center",
+        "justifyContent": "center" 
     }),
 
     # Center section
@@ -167,20 +172,20 @@ layout = html.Div([
     # Right section
     html.Div([
          html.Div([
-            html.Label(f"Stock Price ($)", style={'margin':'10px 0', 'color':'white'}),
-            dcc.Slider(id='S', min=50, max=150, value=100, marks=None, tooltip={'always_visible':True}, className="slider"),
+            html.Label(f"Stock Price ($)", style={'color':'white', 'textAlign': 'center', 'width': '100%', 'display': 'block'}),
+            dcc.Slider(id='S', min=50, max=150, value=100, marks=None, tooltip={'always_visible':True, 'placement': 'bottom'}, className="slider"),
     
-            html.Label(f"Strike Price ($)", style={'margin':'10px 0', 'color':'white'}),
-            dcc.Slider(id="K", min=50, max=150, value=100, marks=None, tooltip={'always_visible':True}, className="slider"),
+            html.Label(f"Strike Price ($)", style={'color':'white', 'textAlign': 'center', 'width': '100%', 'display': 'block'}),
+            dcc.Slider(id="K", min=50, max=150, value=100, marks=None, tooltip={'always_visible':True, 'placement': 'bottom'}, className="slider"),
     
-            html.Label(f"Volatility (σ)", style={'margin':'10px 0', 'color':'white'}),
-            dcc.Slider(id="v", min=0.1, max=1.0, step=0.05, value=0.2, marks=None, tooltip={'always_visible':True}, className="slider"),
+            html.Label(f"Volatility (σ)", style={'color':'white', 'textAlign': 'center', 'width': '100%', 'display': 'block'}),
+            dcc.Slider(id="v", min=0.1, max=1.0, step=0.05, value=0.2, marks=None, tooltip={'always_visible':True, 'placement': 'bottom'}, className="slider"),
     
-            html.Label(f"Time (Years)", style={'margin':'10px 0', 'color':'white'}),
-            dcc.Slider(id="t", min=0.1, max=5, step=0.1, value=1, marks=None, tooltip={'always_visible':True}, className="slider"),
+            html.Label(f"Time (Years)", style={'color':'white', 'textAlign': 'center', 'width': '100%', 'display': 'block'}),
+            dcc.Slider(id="t", min=0.1, max=5, step=0.1, value=1, marks=None, tooltip={'always_visible':True, 'placement': 'bottom'}, className="slider"),
     
-            html.Label(f"Steps (High = Slow)", style={'margin':'10px 0', 'color':'white'}),
-            dcc.Slider(id="N", min=10, max=100, step=10, value=20, marks=None, tooltip={'always_visible':True}, className="slider"),
+            html.Label(f"Steps (High = Slow)", style={'color':'white', 'textAlign': 'center', 'width': '100%', 'display': 'block'}),
+            dcc.Slider(id="N", min=10, max=100, step=10, value=20, marks=None, tooltip={'always_visible':True, 'placement': 'bottom'}, className="slider"),
             
             html.Div([
                 html.Label("Option Type", style={'color':'white', 'marginRight':'10px'}),
@@ -190,21 +195,21 @@ layout = html.Div([
                     value='call',
                     labelStyle={'display': 'inline-block', 'marginRight':'10px', 'color':'white'}
                 )
-            ], style={'marginTop': '20px'}),
+            ], style={'marginTop': '20px', 'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center'}),
 
-         ], className='sliders', style={'width': '100%'}),
+         ], className='sliders', style={'width': '100%', 'display': 'flex', 'flexDirection': 'column', 'justifyContent': 'space-evenly'}),
          
          html.Div([
-             html.Label("Calculated Option Price", style={"margin":"0", "font-size":"18px", "color":"#888"}),
+             html.Label("Calculated Option Price", style={"margin":"0", "fontSize":"18px", "color":"#888"}),
              html.Div(id="option-price", style={"fontSize": "40px", "color": "#00ff88", "fontWeight": "bold"})
-         ], className='optionprice', style={'width': '100%', 'marginTop': '20px'})
+         ], className='optionprice', style={'width': '100%', 'marginTop': '20px', 'display': 'flex', 'flexDirection': 'column', 'justifyContent': 'center', 'alignItems': 'center'})
          
    ], className="inputs", style={
        "width": "24vw",
        "margin": "auto 10px"
    })
    
-], style={'display':'flex', 'justify-content':'center', 'alignItems': 'center', 'height': '100vh', 'width': '100vw', 'overflow': 'hidden', 'padding': '0', 'margin': '0'})
+], style={'display':'flex', 'justifyContent':'center', 'alignItems': 'center', 'height': '100vh', 'width': '100vw', 'overflow': 'hidden', 'padding': '0', 'margin': '0'})
 
 @callback(
     [Output("option-price", "children"),

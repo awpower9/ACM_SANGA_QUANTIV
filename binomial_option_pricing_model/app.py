@@ -18,7 +18,8 @@ navbar = html.Div([
                     html.A("Volatility", href="/volatility",className="nav"),
               ],className="bar"),
 
-              html.Div([],className="credentials")
+              html.Div([],className="credentials"),
+              dcc.Store(id='shared-params', storage_type='session')
     ],
     className="navbar"
 )

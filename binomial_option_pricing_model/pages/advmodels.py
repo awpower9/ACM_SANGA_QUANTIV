@@ -1,5 +1,5 @@
 import dash
-from dash import dcc,html
+from dash import dcc,html,callback
 from dash.dependencies import Input,Output
 import plotly.graph_objects as go
 
@@ -18,10 +18,10 @@ layout=html.Div([
                          ],
                      value="Merton"
                  )
-             ],className="models1"),
+             ],className="models2"),
 
              html.Div([
-                   html.P("Jump diffusion parameters",style={"padding":"20px"}),
+                   html.P("Jump diffusion parameters",style={"padding":"10px","font-size":"20px"}),
 
                    html.Label("Stockprice",style={'margin':'10px 60px'}),
                    dcc.Slider(id='Sa',min=50,max=150,value=100,marks=None,tooltip={'always_visible':True},className="slider"),
@@ -33,7 +33,16 @@ layout=html.Div([
                    dcc.Slider(id="va",min=0.1,max=1.0,value=0.2,marks=None,tooltip={'always_visible':True},className="slider"),
     
                 
-             ],className="extra")
+             ],className="extra"),
+             
+             html.Div([
+                 html.P("Options",style={"font-size":"20px","margin-left":"20px"}),
+                 dcc.RadioItems(
+                     options=[
+                         {"label":"call option","value":"call"},
+                         {"label":"put option","value":"put"}
+                 ],style={"display":"flex","justify-content":"space-evenly","width":"15vw"})
+             ],className="callput")
            ]),
 
     html.Div([],style={"margin":"80px 10px","background-color":"black","width":"60vw",'height':'75vh','border-radius':'30px','padding':'10px'},className="tree"),

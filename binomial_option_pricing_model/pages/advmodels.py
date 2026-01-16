@@ -71,3 +71,21 @@ layout=html.Div([
    ],className="inputs")
 ],style={'display':'flex','justify-content':'space-between'})
 
+@dash.callback(
+    Output('shared-params', 'data'),
+    [Input('S', 'value'),
+     Input('K', 'value'),
+     Input('t', 'value'),
+     Input('v', 'value'),
+     Input('N', 'value')]
+)
+def update_shared_store(S, K, T, sigma, steps):
+    return {
+        'S': S,
+        'K': K,
+        'T': T,
+        'sigma': sigma,
+        'steps': steps,
+        'r': 0.05 # Default risk-free rate
+    }
+

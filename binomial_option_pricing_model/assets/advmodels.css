@@ -1,12 +1,40 @@
 .extra{
-    margin: 60px 10px ;
+    margin: 10px 10px ;
     background-color:black;
-    width:17vw;
+    width:20vw;
     height:230px;
     border-radius:30px;
     padding:0px 0;
     
     background-repeat: no-repeat;
-    background-image:radial-gradient(circle at 10% 10%,rgba(250,102,30,0.9)0%,transparent 80%),
-                     radial-gradient(circle at 90% 90%,rgba(30,100,250,0.9)0%,transparent 80%);
+    background-image:radial-gradient(circle at 10% 10%,rgba(250,102,30,0.6)0%,transparent 40%),
+                     radial-gradient(circle at 90% 90%,rgba(30,100,250,0.6)0%,transparent 40%);
+}
+
+.models2{
+    width: 20vw;
+    margin-top:85px;
+    margin-left:10px;
+    margin-right: 10px;
+    background-color:black;
+    background-repeat: no-repeat;
+    background-image: radial-gradient(circle at 10% 10%,rgba(240,100,30,0.5)0%,transparent 40%),
+                      radial-gradient(circle at 90% 90%,rgba(30,100,250,0.5)0%,transparent 40%);
+    padding:10px 0;
+    height: 220px;
+    border-radius: 30px;
+}
+
+.callput{
+    margin: 10px 10px ;
+    background-color:black;
+    width:20vw;
+    height:100px;
+    border-radius:30px;
+    padding:0px 0;
+    
+    background-repeat: no-repeat;
+    background-image:radial-gradient(circle at 10% 10%,rgba(250,102,30,0.6)0%,transparent 40%),
+                     radial-gradient(circle at 90% 90%,rgba(30,100,250,0.6)0%,transparent 40%);
+
 }

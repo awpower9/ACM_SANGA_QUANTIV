@@ -25,7 +25,7 @@ navbar = html.Div([
 )
 
 app.layout=html.Div([
-  
+     dcc.Store(id='shared-store', storage_type='session'),
 
      navbar,
      dash.page_container

@@ -129,28 +129,42 @@ if not USE_CPP:
 layout = html.Div([
     
     # Left section
-    html.Div([
-        html.P("Select Model", style={"fontSize":"25px", "color": "white", "textAlign": "center", "marginBottom": "20px"}),
-        dcc.Dropdown(
-            id='model-selector',
-            options=[
-               {"label":"Black Scholes", "value":"BlackScholes"},
-               {"label":"Binomial Model", "value":"binomial"},
-               {"label":"Trinomial Model", "value":"trinomial"}
-            ],
-            value="binomial",
-            clearable=False,
-            style={'width': '80%', 'margin': '0 auto'}
-        )
-    ], className="models1", style={
-        "width": "15vw", 
-        "margin": "40px 10px",
-        "height": "80vh",
-        "display": "flex",
-        "flexDirection": "column",
-        "alignItems": "center",
-        "justifyContent": "center" 
-    }),
+
+    html.Div([      
+          html.Div([
+              html.P("Select Model",style={"font-size":"25px","padding":"0 10px"}),
+              dcc.Dropdown(
+                  options=[
+                     {"label":"Black Scholes","value":"BlackScholes"},
+                     {"label":"Binomial option model","value":"binomial"},
+                     {"label":"Trinomial option model","value":"trinomial"}
+                      ],
+                  value="BlackScholes"
+              )
+          ],className="models1"),
+          
+          html.Div([
+                html.P("Options",style={"margin":"20px 25px","font-size":"30px"}),
+                   dcc.RadioItems(
+                       id='option-type',
+                       options=[
+                           
+                           {"label":"call","value":"call"},
+                           {"label":"put","value":"put"}
+                       ],value="call",style={"display":"flex","justify-content":"space-evenly","width":"10vw"}
+                   ),
+                   
+                   html.P("Style",style={"margin":"20px 25px","font-size":"30px"}),
+                   dcc.RadioItems(
+                       options=[
+                           {"label":"European","value":"european"},
+                           {"label":"American","value":"american"}
+                       ],value="european",id="option2",style={"display":"flex","justify-content":"space-evenly","width":"14vw"}
+                   )
+                
+              ],className="extra")
+    ]) ,
+
 
     # Center section
     html.Div([
@@ -187,6 +201,7 @@ layout = html.Div([
             html.Label(f"Steps (High = Slow)", style={'color':'white', 'textAlign': 'center', 'width': '100%', 'display': 'block'}),
             dcc.Slider(id="N", min=10, max=100, step=10, value=20, marks=None, tooltip={'always_visible':True, 'placement': 'bottom'}, className="slider"),
             
+
             html.Div([
                 html.Label("Option Type", style={'color':'white', 'marginRight':'10px'}),
                 dcc.RadioItems(
@@ -198,7 +213,7 @@ layout = html.Div([
             ], style={'marginTop': '20px', 'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center'}),
 
          ], className='sliders', style={'width': '100%', 'display': 'flex', 'flexDirection': 'column', 'justifyContent': 'space-evenly'}),
-         
+   
          html.Div([
              html.Label("Calculated Option Price", style={"margin":"0", "fontSize":"18px", "color":"#888"}),
              html.Div(id="option-price", style={"fontSize": "40px", "color": "#00ff88", "fontWeight": "bold"})

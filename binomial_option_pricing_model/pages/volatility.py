@@ -12,7 +12,7 @@ layout = html.Div([
              html.H4("Implied Volatility Surface", style={'color': 'white', 'textAlign': 'center', 'marginBottom': '10px'}),
              dcc.Loading(
                  type="circle",
-                 children=dcc.Graph(id='vol-surface-3d', style={'height': '350px'})
+                 children=dcc.Graph(id='vol-surface-3d', style={'height': '450px','width':'600px'})
              )
         ], className="Scholes"),
            
@@ -20,7 +20,7 @@ layout = html.Div([
              html.H4("Greeks Sensitivity", style={'color': 'white', 'textAlign': 'center', 'marginBottom': '10px'}),
              dcc.Loading(
                  type="circle",
-                 children=dcc.Graph(id='vol-greeks-chart', style={'height': '350px'})
+                 children=dcc.Graph(id='vol-greeks-chart', style={'height': '400px','width':'600px'})
              )
         ], className="Scholes"),
 

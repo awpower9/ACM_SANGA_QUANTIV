@@ -1,40 +1,32 @@
-"""
-Setup script for building the C++ options engine extension
-"""
 from setuptools import setup, Extension
-from setuptools.command.build_ext import build_ext
 import sys
 import setuptools
-import pybind11
 
+# 1. Helper class to find the pybind11 include path
 class get_pybind_include(object):
-    """Helper class to determine the pybind11 include path"""
     def __str__(self):
+        import pybind11
         return pybind11.get_include()
+    
+c_args = ['-std=c++17', '-O3']
+if sys.platform == 'darwin':
+    c_args += ['-mmacosx-version-min=10.15']
 
-if sys.platform == 'win32':
-    extra_compile_args = ['/std:c++17', '/O2']
-else:
-    extra_compile_args = ['-std=c++17', '-O3', '-march=native']
-
-ext_modules = [
-    Extension(
-        'binomial_engine',
-        ['binomial_engine.cpp'],
-        include_dirs=[
-            get_pybind_include(),
-        ],
-        language='c++',
-        extra_compile_args=extra_compile_args,
+ext_modules = [Extension(
+        'quantiv_engine', 
+        ['src/bindings.cpp','src/black_scholes.cpp','src/binomial.cpp','src/merton_model.cpp' ],
+        include_dirs=['include',get_pybind_include(),get_pybind_include()],
+        language='c++'
     ),
 ]
 
 setup(
-    name='binomial_engine',
+    name='quantiv_engine',
     version='1.0.0',
-    author='Abstract Quantiv Team',
-    description='High-performance options pricing engine',
+    author='Quantiv Team',
+    description='High-Performance Option Pricing Engine (Binomial + Black-Scholes)',
     ext_modules=ext_modules,
-    install_requires=['pybind11>=2.6.0'],
+    install_requires=['pybind11>=2.6.0', 'dash', 'pandas', 'yfinance'],
+    setup_requires=['pybind11>=2.6.0'],
     zip_safe=False,
 )

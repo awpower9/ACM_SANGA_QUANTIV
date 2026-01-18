@@ -3,7 +3,7 @@ from dash import dcc,html
 from dash.dependencies import Input,Output
 import plotly.graph_objects as go
 
-app=dash.Dash(__name__,use_pages=True)
+app=dash.Dash(__name__,use_pages=True, suppress_callback_exceptions=True)
 
 navbar = html.Div([
               html.Div([
@@ -26,7 +26,7 @@ navbar = html.Div([
 
 app.layout=html.Div([
      dcc.Store(id='shared-store', storage_type='session'),
-
+     dcc.Store(id='shared-store2', storage_type='session'),
      navbar,
      dash.page_container
 ])

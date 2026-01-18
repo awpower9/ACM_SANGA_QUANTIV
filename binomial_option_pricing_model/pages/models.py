@@ -3,176 +3,70 @@ from dash import dcc, html, callback
 from dash.dependencies import Input, Output
 import plotly.graph_objects as go
 import numpy as np
+import time  # <--- 1. NEW IMPORT
 
-# Import our new visualization module
-import pages.graphs as graphs
-
-dash.register_page(__name__)
-
+# --- ENGINE IMPORTS ---
 try:
-    import binomial_engine
-    engine = binomial_engine.BinomialEngine()
+    import quantiv_engine
+    # Initialize engines once globally
+    binomial_engine = quantiv_engine.BinomialEngine()
+    bsm_engine = quantiv_engine.BlackScholes()
     USE_CPP = True
-    print("✓ Using C++ binomial engine")
 except ImportError:
     USE_CPP = False
-    print("⚠ C++ engine not available, using Python fallback")
+    print("⚠ C++ Engine not found.")
 
+# --- KEEPING YOUR EXISTING GRAPH LOGIC ---
+import pages.graphs as graphs 
 
-class PythonBinomialEngine:
-    def binomial_price(self, S, K, T, r, sigma, is_call, steps, american=True):
-        if T <= 0 or steps <= 0: return max(S - K, 0) if is_call else max(K - S, 0)
-        dt = T / steps
-        u = np.exp(sigma * np.sqrt(dt))
-        d = 1 / u
-        p = (np.exp(r * dt) - d) / (u - d)
-        discount = np.exp(-r * dt)
-        
-        # Initialize option values at maturity
-        option_values = np.zeros(steps + 1)
-        for i in range(steps + 1):
-            ST = S * (u ** (steps - i)) * (d ** i)
-            option_values[i] = max(ST - K, 0) if is_call else max(K - ST, 0)
-        for j in range(steps - 1, -1, -1):
-            for i in range(j + 1):
-                option_values[i] = discount * (p * option_values[i] + (1 - p) * option_values[i + 1])
-                if american:
-                    stock_price = S * (u ** (j - i)) * (d ** i)
-                    option_values[i] = max(option_values[i], (max(stock_price - K, 0) if is_call else max(K - stock_price, 0)))
-        return option_values[0]
-    
-    def get_tree_structure(self, S, K, T, r, sigma, is_call, steps, american=True):
-        if steps > 15:
-            steps = 15  # Limit for visualization
-            
-        dt = T / steps
-        u = np.exp(sigma * np.sqrt(dt))
-        d = 1 / u
-        p = (np.exp(r * dt) - d) / (u - d)
-        discount = np.exp(-r * dt)
-        
-        # Calculate stock prices
-        stock_prices = []
-        for j in range(steps + 1):
-            row = []
-            for i in range(j + 1):
-                price = S * (u ** (j - i)) * (d ** i)
-                row.append(price)
-            stock_prices.append(row)
-            
-        # Calculate option values
-        option_values = [[0.0] * (j + 1) for j in range(steps + 1)]
-        
-        # Terminal values
-        for i in range(steps + 1):
-            val = max(stock_prices[steps][i] - K, 0) if is_call else max(K - stock_prices[steps][i], 0)
-            option_values[steps][i] = val
-            
-        # Backward induction
-        for j in range(steps - 1, -1, -1):
-            for i in range(j + 1):
-                val = discount * (p * option_values[j + 1][i] + (1 - p) * option_values[j + 1][i + 1])
-                if american:
-                    exercise = max(stock_prices[j][i] - K, 0) if is_call else max(K - stock_prices[j][i], 0)
-                    val = max(val, exercise)
-                option_values[j][i] = val
-                
-        # Flatten to list of nodes
-        nodes = []
-        for j in range(steps + 1):
-            for i in range(j + 1):
-                node = type('TreeNode', (object,), {
-                    'step': j,
-                    'index': i,
-                    'stock_price': stock_prices[j][i],
-                    'option_value': option_values[j][i]
-                })()
-                nodes.append(node)
-                
-        return nodes
-
-    def calculate_option(self, S, K, T, r, sigma, is_call, steps, american=True):
-        price = self.binomial_price(S, K, T, r, sigma, is_call, steps, american)
-        
-        # Calculate Greeks using finite differences
-        dS = S * 0.01
-        dT = 1 / 365
-        dSigma = 0.01
-        dr = 0.01
-        
-        price_up = self.binomial_price(S + dS, K, T, r, sigma, is_call, steps, american)
-        price_down = self.binomial_price(S - dS, K, T, r, sigma, is_call, steps, american)
-        delta = (price_up - price_down) / (2 * dS)
-        
-        gamma = (price_up - 2 * price + price_down) / (dS * dS)
-        
-        if T > dT:
-            price_time_dec = self.binomial_price(S, K, T - dT, r, sigma, is_call, steps, american)
-            theta = price_time_dec - price
-        else:
-            theta = -price / (T * 365)
-        
-        price_vol_up = self.binomial_price(S, K, T, r, sigma + dSigma, is_call, steps, american)
-        vega = (price_vol_up - price) / (dSigma * 100)
-        
-        price_rate_up = self.binomial_price(S, K, T, r + dr, sigma, is_call, steps, american)
-        rho = (price_rate_up - price) / (dr * 100)
-        
-        return type('obj', (object,), {
-            'price': price, 'delta': delta, 'gamma': gamma,
-            'theta': theta, 'vega': vega, 'rho': rho
-        })()
-
-if not USE_CPP:
-    engine = PythonBinomialEngine()
+dash.register_page(__name__, path='/models')
 
 layout = html.Div([
     
-    # Left section
-
+    # --- LEFT SIDE: CONTROLS ---
     html.Div([      
           html.Div([
-              html.P("Select Model",style={"font-size":"25px","padding":"0 10px"}),
+              html.P("Select Model", style={"fontSize":"25px", "padding":"0 10px"}),
               dcc.Dropdown(
+                  id="model1-selector",
                   options=[
-                     {"label":"Black Scholes","value":"BlackScholes"},
-                     {"label":"Binomial option model","value":"binomial"},
-                     {"label":"Trinomial option model","value":"trinomial"}
-                      ],
-                  value="BlackScholes"
+                     {"label":"Black-Scholes", "value":"BlackScholes"},
+                     {"label":"Binomial Option model", "value":"binomial"},
+                     {"label":"Trinomial option model", "value":"trinomial"}
+                  ],
+                  value="BlackScholes", clearable=False
               )
-          ],className="models1"),
+          ], className="models1"),
           
           html.Div([
-                html.P("Options",style={"margin":"20px 25px","font-size":"30px"}),
-                   dcc.RadioItems(
-                       id='option-type',
-                       options=[
-                           
-                           {"label":"call","value":"call"},
-                           {"label":"put","value":"put"}
-                       ],value="call",style={"display":"flex","justify-content":"space-evenly","width":"10vw"}
-                   ),
-                   
-                   html.P("Style",style={"margin":"20px 25px","font-size":"30px"}),
-                   dcc.RadioItems(
-                       options=[
-                           {"label":"European","value":"european"},
-                           {"label":"American","value":"american"}
-                       ],value="european",id="option2",style={"display":"flex","justify-content":"space-evenly","width":"14vw"}
-                   )
+                html.P("Option Type", style={"margin":"20px 25px", "fontSize":"30px"}),
+                dcc.RadioItems(
+                    id='option-type',
+                    options=[
+                        {"label":"Call", "value":"call"},
+                        {"label":"Put", "value":"put"}
+                    ], value="call", 
+                    style={"display":"flex", "justifyContent":"space-evenly", "width":"10vw"}
+                ),
                 
-              ],className="extra")
-    ]) ,
+                html.P("Exercise Style", style={"margin":"20px 25px", "fontSize":"30px"}),
+                dcc.RadioItems(
+                    id='option-style',
+                    options=[
+                        {"label":"European", "value":"european"},
+                        {"label":"American", "value":"american"}
+                    ], value="american", 
+                    style={"display":"flex", "justifyContent":"space-evenly", "width":"14vw"}
+                )
+          ], className="extra")
+    ]),
 
-
-
-
-    # Center section
+    # --- CENTER: GRAPH ---
     html.Div([
         dcc.Loading(
             id="loading-graph",
             type="circle",
+            color="#00ff88",
             children=dcc.Graph(
                 id="main-graph", 
                 style={'height': '100%'},
@@ -185,73 +79,107 @@ layout = html.Div([
         "height": "80vh"
     }),
 
-    # Right section
+    # --- RIGHT: SLIDERS ---
     html.Div([
          html.Div([
-            html.Label(f"Stock Price ($)", style={'color':'white', 'textAlign': 'center', 'width': '100%', 'display': 'block'}),
-            dcc.Slider(id='S', min=50, max=150, value=100, marks=None, tooltip={'always_visible':True, 'placement': 'bottom'}, className="slider"),
+            html.Label("Stock Price ($)", style={'color':'white'}),
+            dcc.Slider(id='S', min=50, max=150, value=100, tooltip={'always_visible':True},marks=None, className="slider"),
     
-            html.Label(f"Strike Price ($)", style={'color':'white', 'textAlign': 'center', 'width': '100%', 'display': 'block'}),
-            dcc.Slider(id="K", min=50, max=150, value=100, marks=None, tooltip={'always_visible':True, 'placement': 'bottom'}, className="slider"),
+            html.Label("Strike Price ($)", style={'color':'white'}),
+            dcc.Slider(id="K", min=50, max=150, value=100, tooltip={'always_visible':True},marks=None, className="slider"),
     
-            html.Label(f"Volatility (σ)", style={'color':'white', 'textAlign': 'center', 'width': '100%', 'display': 'block'}),
-            dcc.Slider(id="v", min=0.1, max=1.0, step=0.05, value=0.2, marks=None, tooltip={'always_visible':True, 'placement': 'bottom'}, className="slider"),
+            html.Label("Volatility (σ)", style={'color':'white'}),
+            dcc.Slider(id="v", min=0.1, max=1.0, step=0.05, value=0.2, tooltip={'always_visible':True},marks=None, className="slider"),
     
-            html.Label(f"Time (Years)", style={'color':'white', 'textAlign': 'center', 'width': '100%', 'display': 'block'}),
-            dcc.Slider(id="t", min=0.1, max=5, step=0.1, value=1, marks=None, tooltip={'always_visible':True, 'placement': 'bottom'}, className="slider"),
+            html.Label("Time (Years)", style={'color':'white'}),
+            dcc.Slider(id="t", min=0.1, max=5, step=0.1, value=1, tooltip={'always_visible':True},marks=None, className="slider"),
     
-            html.Label(f"Steps (High = Slow)", style={'color':'white', 'textAlign': 'center', 'width': '100%', 'display': 'block'}),
-            dcc.Slider(id="N", min=10, max=100, step=10, value=20, marks=None, tooltip={'always_visible':True, 'placement': 'bottom'}, className="slider"),
-            
-
-
-            html.Div([
-                html.Label("Option Type", style={'color':'white', 'marginRight':'10px'}),
-                dcc.RadioItems(
-                    id='option-type',
-                    options=[{'label': 'Call', 'value': 'call'}, {'label': 'Put', 'value': 'put'}],
-                    value='call',
-                    labelStyle={'display': 'inline-block', 'marginRight':'10px', 'color':'white'}
-                )
-            ], style={'marginTop': '20px', 'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center'}),
-
-         ], className='sliders', style={'width': '100%', 'display': 'flex', 'flexDirection': 'column', 'justifyContent': 'space-evenly'}),
+            html.Label("Steps (N)", style={'color':'white'}),
+            dcc.Slider(id="N", min=1, max=20, step=1, value=5, tooltip={'always_visible':True},marks=None, className="slider"),
+         ], className='sliders', style={'width': '100%', 'display': 'flex', 'flexDirection': 'column', 'justifyContent': 'space-evenly', 'height': '60%'}),
    
-
          html.Div([
              html.Label("Calculated Option Price", style={"margin":"0", "fontSize":"18px", "color":"#888"}),
              html.Div(id="option-price", style={"fontSize": "40px", "color": "#00ff88", "fontWeight": "bold"})
-         ], className='optionprice', style={'width': '100%', 'marginTop': '20px', 'display': 'flex', 'flexDirection': 'column', 'justifyContent': 'center', 'alignItems': 'center'})
+         ], className='optionprice', style={'width': '100%', 'marginTop': '20px', 'textAlign': 'center'})
          
-   ], className="inputs", style={
-       "width": "24vw",
-       "margin": "auto 10px"
-   })
+   ], className="inputs", style={"width": "24vw", "margin": "auto 10px"})
    
-], style={'display':'flex', 'justifyContent':'center', 'alignItems': 'center', 'height': '100vh', 'width': '100vw', 'overflow': 'hidden', 'padding': '0', 'margin': '0'})
+], style={'display':'flex', 'justifyContent':'center', 'alignItems': 'center', 'height': '100vh', 'width': '100vw', 'overflow': 'hidden'})
 
+
+# --- MAIN CALLBACK ---
 @callback(
     [Output("option-price", "children"),
-     Output("main-graph", "figure")],
+     Output("main-graph", "figure"),
+     Output("shared-store", "data")],
+    
     [Input("S", "value"),
      Input("K", "value"),
      Input("v", "value"),
      Input("t", "value"),
      Input("N", "value"),
-     Input("option-type", "value")]
+     Input("option-type", "value"),
+     Input("option-style", "value"),
+     Input("model1-selector", "value")]
 )
-def update_dashboard(S, K, sigma, T, steps, option_type_str):
-    r = 0.05
+def update_dashboard(S, K, sigma, T, steps, option_type_str, option_style, model_name):
+    # 1. Setup Variables
+    r = 0.05 
     is_call = (option_type_str == 'call')
-    american = True # Default for now
+    american = (option_style == 'american') 
     
-    # Calculate Price
-    result = engine.calculate_option(S, K, T, r, sigma, is_call, steps, american)
-    price_text = f"${result.price:.2f}"
-    
-    # Gets tree nodes and draw graph
-    viz_nodes = engine.get_tree_structure(S, K, T, r, sigma, is_call, steps, american)
-    fig = graphs.draw_binomial_tree(viz_nodes, steps)
-        
-    return price_text, fig
+    # Safe Inputs
+    S = float(S) if S else 100.0
+    K = float(K) if K else 100.0
+    sigma = float(sigma) if sigma else 0.2
+    T = float(T) if T else 1.0
+    steps = int(steps) if steps else 5
 
+    price_text = "$0.00"
+    fig = go.Figure()
+
+    # 2. Logic Per Model
+    if model_name == "binomial":    
+        if USE_CPP:
+            result = binomial_engine.calculate_option(S, K, T, r, sigma, is_call, steps, american)
+            price_text = f"${result.price:.2f}"
+            
+            # Use your existing graph logic
+            viz_nodes = binomial_engine.get_tree_structure(S, K, T, r, sigma, is_call, steps, american)
+            fig = graphs.draw_binomial_tree(viz_nodes, steps)
+        else:
+             price_text = "Error: Engine Not Loaded"
+        
+    elif model_name == "BlackScholes":
+        if USE_CPP:
+            result = bsm_engine.calculate(S, K, T, sigma, is_call)
+            price_text = f"${result.price:.2f}"
+            
+            # Simple Visual for BS
+            fig.add_annotation(
+                text="Black-Scholes Model<br>(Exact Formula)",
+                xref="paper", yref="paper", x=0.5, y=0.5, 
+                showarrow=False, font={'color':'white', 'size': 24}
+            )
+            fig.update_layout(
+                plot_bgcolor='black', paper_bgcolor='black',
+                xaxis={'visible': False}, yaxis={'visible': False}
+            )
+        
+    elif model_name == "trinomial":
+        price_text = "$0.00"
+        fig.add_annotation(text="Trinomial Model<br>(Coming Soon)", xref="paper", yref="paper", x=0.5, y=0.5, showarrow=False, font={'color':'white'})
+        fig.update_layout(plot_bgcolor='black', paper_bgcolor='black', xaxis={'visible': False}, yaxis={'visible': False})
+        
+    # 3. Save Data (WITH TIMESTAMP)
+    store_data = {
+        'model': model_name,
+        'type': option_type_str, 'style': option_style,
+        'S': S, 'K': K, 'v': sigma, 't': T, 'N': steps, 
+        'r': r, 
+        'price': price_text,
+        'timestamp': time.time()  # <--- 2. ADDED TIMESTAMP
+    }
+    
+    return price_text, fig, store_data

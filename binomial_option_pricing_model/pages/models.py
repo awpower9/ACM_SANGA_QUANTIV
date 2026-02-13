@@ -10,6 +10,7 @@ try:
     import quantiv_engine
     # Initialize engines once globally
     binomial_engine = quantiv_engine.BinomialEngine()
+    trinomial_engine = quantiv_engine.TrinomialEngine()
     bsm_engine = quantiv_engine.BlackScholes()
     USE_CPP = True
 except ImportError:
@@ -22,6 +23,7 @@ import pages.graphs as graphs
 dash.register_page(__name__, path='/models')
 
 layout = html.Div([
+    dcc.Location(id='models-url', refresh=False), # LISTENS TO URL
     
     # --- LEFT SIDE: CONTROLS ---
     html.Div([      
@@ -108,6 +110,32 @@ layout = html.Div([
 ], style={'display':'flex', 'justifyContent':'center', 'alignItems': 'center', 'height': '100vh', 'width': '100vw', 'overflow': 'hidden'})
 
 
+# --- URL PARSING CALLBACK ---
+@callback(
+    Output("model1-selector", "value"),
+    Input("models-url", "search")
+)
+def update_model_dropdown_from_url(search):
+    if not search:
+        return dash.no_update
+    
+    # Simple manual parsing since we only expect ?model=...
+    # Or use urllib.parse
+    if "model=" in search:
+        try:
+            # Extract value after model=
+            params = search.split("model=")[1].split("&")[0]
+            # Map URL values to Dropdown values if they differ
+            # URL: binomial -> Dropdown: binomial
+            # URL: trinomial -> Dropdown: trinomial
+            # URL: BlackScholes -> Dropdown: BlackScholes
+            return params
+        except IndexError:
+            return dash.no_update
+    
+    return dash.no_update
+
+
 # --- MAIN CALLBACK ---
 @callback(
     [Output("option-price", "children"),
@@ -168,9 +196,27 @@ def update_dashboard(S, K, sigma, T, steps, option_type_str, option_style, model
             )
         
     elif model_name == "trinomial":
-        price_text = "$0.00"
-        fig.add_annotation(text="Trinomial Model<br>(Coming Soon)", xref="paper", yref="paper", x=0.5, y=0.5, showarrow=False, font={'color':'white'})
-        fig.update_layout(plot_bgcolor='black', paper_bgcolor='black', xaxis={'visible': False}, yaxis={'visible': False})
+        if USE_CPP:
+            try:
+                is_call = (option_type_str == "call")
+                # Ensure types are correct
+                steps = int(steps)
+                sigma = float(sigma)
+                
+                res = trinomial_engine.calculate_option(S, K, T, r, sigma, is_call, steps, american)
+                price = res.price
+                price_text = f"${price:.2f}"
+                
+                # Visualizer
+                viz_nodes = trinomial_engine.get_tree_structure(S, K, T, r, sigma, is_call, steps, american)
+                fig = graphs.draw_trinomial_tree(viz_nodes, steps)
+
+            except Exception as e:
+                price_text = "Error"
+                print(f"Trinomial Error: {e}")
+                fig.add_annotation(text=f"Error: {str(e)}", xref="paper", yref="paper", x=0.5, y=0.5, showarrow=False, font={'color':'red', 'size': 14})
+        else:
+            price_text = "N/A (No C++ Engine)"
         
     # 3. Save Data (WITH TIMESTAMP)
     store_data = {

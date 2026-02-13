@@ -94,6 +94,105 @@ def draw_binomial_tree(nodes, steps):
     
     return fig
 
+def draw_trinomial_tree(nodes, steps):
+    """
+    Creates a visual representation of the Trinomial Tree.
+    """
+    fig = go.Figure()
+    
+    # We limit visualization depth to 12 steps to prevent lag (Trinomial grows faster)
+    viz_steps = min(steps, 12)
+    
+    # Organize nodes by (step, index) for easy connection
+    node_map = {}
+    for n in nodes:
+        node_map[(n.step, n.index)] = n
+
+    edge_x = []
+    edge_y = []
+    
+    # Create Edges
+    for n in nodes:
+        if n.step < viz_steps:
+            # Trinomial has 3 branches: Up, Middle, Down
+            # In our C++ grid logic, node `i` at step `j` connects to:
+            # `i` (down), `i+1` (mid), `i+2` (up) in step `j+1`.
+            # Wait, the node indices in the list are 0..2*j.
+            # Let's verify standard connectivity.
+            # At step j, we have 2j+1 nodes.
+            # Node (j, i) connects to (j+1, i), (j+1, i+1), (j+1, i+2)?
+            # Let's check root j=0, i=0. Connects to (1,0), (1,1), (1,2). Correct.
+            
+            # Connect to "Up" (i+2)
+            up_node = node_map.get((n.step + 1, n.index + 2))
+            if up_node:
+                edge_x.extend([n.step, n.step + 1, None])
+                edge_y.extend([n.stock_price, up_node.stock_price, None])
+
+            # Connect to "Mid" (i+1)
+            mid_node = node_map.get((n.step + 1, n.index + 1))
+            if mid_node:
+                edge_x.extend([n.step, n.step + 1, None])
+                edge_y.extend([n.stock_price, mid_node.stock_price, None])
+            
+            # Connect to "Down" (i)
+            down_node = node_map.get((n.step + 1, n.index))
+            if down_node:
+                edge_x.extend([n.step, n.step + 1, None])
+                edge_y.extend([n.stock_price, down_node.stock_price, None])
+
+    # Add Edges to Plot
+    fig.add_trace(go.Scatter(
+        x=edge_x, y=edge_y,
+        mode='lines',
+        line=dict(color='rgba(255, 255, 255, 0.3)', width=1),
+        hoverinfo='none',
+        name='Paths'
+    ))
+
+    # Create Nodes
+    node_x = []
+    node_y = []
+    node_text = []
+    node_color = []
+    
+    for n in nodes:
+        if n.step <= viz_steps:
+            node_x.append(n.step)
+            node_y.append(n.stock_price)
+            
+            txt = f"Step: {n.step}<br>Stock: ${n.stock_price:.2f}<br>Option: ${n.option_value:.2f}"
+            node_text.append(txt)
+            
+            # Color logic
+            if n.option_value > 0:
+                 node_color.append(COLORS['node_exercise'])
+            else:
+                 node_color.append(COLORS['node_call'])
+
+    # Add Nodes to Plot
+    fig.add_trace(go.Scatter(
+        x=node_x, y=node_y,
+        mode='markers',
+        marker=dict(size=6, color=node_color, line=dict(color='white', width=1)),
+        text=node_text,
+        hoverinfo='text',
+        name='Nodes'
+    ))
+
+    # Styling
+    fig.update_layout(
+        title={'text': f"Trinomial Tree Structure ({viz_steps} Steps)", 'font': {'color': COLORS['text']}},
+        paper_bgcolor=COLORS['background'],
+        plot_bgcolor=COLORS['background'],
+        xaxis=dict(title='Step', showgrid=False, zeroline=False, color=COLORS['text']),
+        yaxis=dict(title='Stock Price', gridcolor=COLORS['grid'], color=COLORS['text']),
+        showlegend=False,
+        margin=dict(l=40, r=40, b=40, t=40)
+    )
+    
+    return fig
+
 def draw_payoff_diagram(engine, S, K, T, r, sigma, is_call, steps, american):
     """
     Creates a Payoff Diagram (Option Value vs Spot Price).

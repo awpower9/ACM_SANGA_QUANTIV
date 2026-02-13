@@ -3,6 +3,9 @@
 #include "../include/black_scholes.h"
 #include "../include/binomial.h"
 #include "../include/merton_model.h"
+#include "../include/heston_model.h"
+
+#include "../include/trinomial.h"
 
 namespace py = pybind11;
 
@@ -28,6 +31,11 @@ PYBIND11_MODULE(quantiv_engine, m) {
         .def("calculate_option", &BinomialEngine::calculate_option)
         .def("get_tree_structure", &BinomialEngine::get_tree_structure);
 
+    py::class_<TrinomialEngine>(m, "TrinomialEngine")
+        .def(py::init<>())
+        .def("calculate_option", &TrinomialEngine::calculate_option)
+        .def("get_tree_structure", &TrinomialEngine::get_tree_structure);
+
     py::class_<BSMResult>(m, "BSMResult")
         .def_readonly("price", &BSMResult::price)
         .def_readonly("delta", &BSMResult::delta)
@@ -51,4 +59,16 @@ PYBIND11_MODULE(quantiv_engine, m) {
     py::class_<Merton>(m,"Merton")
         .def(py::init<>())
         .def("calculate",&Merton::calculate);
+
+    py::class_<HestonResult>(m, "HestonResult")
+        .def_readonly("price", &HestonResult::price)
+        .def_readonly("delta", &HestonResult::delta)
+        .def_readonly("gamma", &HestonResult::gamma)
+        .def_readonly("theta", &HestonResult::theta)
+        .def_readonly("vega", &HestonResult::vega)
+        .def_readonly("rho", &HestonResult::rho);
+
+    py::class_<Heston>(m, "Heston")
+        .def(py::init<>())
+        .def("calculate", &Heston::calculate);
 }

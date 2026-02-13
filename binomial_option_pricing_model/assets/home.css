@@ -1,57 +1,276 @@
-.home1{
-    height: 80vh;
-    width:80vw;
-    background-color:black;
+/* Global Reset for Scrolling */
+html,
+body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    /* Prevent horizontal scroll */
+    overflow-y: auto;
+    /* Allow vertical scroll */
+}
+
+.home1 {
+    min-height: 80vh;
+    /* Allow growth */
+    width: 80vw;
+    background-color: black;
     background-repeat: no-repeat;
     border-radius: 30px;
-    background-image: radial-gradient(circle at 20% 20%,rgba(250,100,30,0.9)0%,transparent 40%),
-                      radial-gradient(circle at 80% 80%,rgba(30,100,250,0.9)0%,transparent 40%); 
-  
-    margin:0 auto;
+    background-image: radial-gradient(circle at 20% 20%, rgba(250, 100, 30, 0.9)0%, transparent 40%),
+        radial-gradient(circle at 80% 80%, rgba(30, 100, 250, 0.9)0%, transparent 40%);
+
+    margin: 40px auto;
+    /* Add margin for scrolling space */
+    padding-bottom: 40px;
+    /* Ensure content isn't cut off */
 }
 
-.home_container{
-    display:flex;
-    justify-content: center;
-    align-items:center;
-    height:90vh;
+.home_container {
+    display: flex;
+    flex-direction: column;
+    /* Stack hero and grid */
+    min-height: 100vh;
+    background-color: black;
+    /* Keeping the nice gradient background */
+    background-image: radial-gradient(circle at 20% 20%, rgba(250, 100, 30, 0.15) 0%, transparent 60%),
+        radial-gradient(circle at 80% 80%, rgba(30, 100, 250, 0.15) 0%, transparent 60%);
+    /* Removed overflow-y: auto to let body scroll */
 }
 
-.hometext{
-    width:50vw;
+.hometext {
+    width: 50vw;
 }
 
-.navbar{
+.navbar {
+    padding: 20px 40px;
     display: flex;
     justify-content: space-between;
-    color: aliceblue;
-    font-size: 20px;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.5);
+    /* Semi-transparent nav */
+    backdrop-filter: blur(5px);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
 }
 
-.nav{
-    color: aliceblue;
+.nav {
+    color: #bbb;
     text-decoration: none;
-    font-size: 20px;
-    margin:15px;
+    font-size: 18px;
+    margin: 0 15px;
+    transition: color 0.3s;
 }
 
-.logo{
+.logo {
     width: 25vw;
     margin: 0;
 }
 
-.credentials{
-    width:25vw;
+.credentials {
+    width: 25vw;
 }
 
-.bar{
+.bar {
     width: 40vw;
     display: flex;
     justify-content: space-evenly;
 }
 
-.logo_png{
-    height: 60px;
+.logo_png {
+    height: 50px;
+}
+
+/* --- HERO SECTION --- */
+.hero-section {
+    text-align: center;
+    padding: 60px 20px;
+    color: white;
+}
+
+.hero-title {
+    font-size: 80px;
     margin: 0;
-    
+    text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+}
+
+.hero-subtitle {
+    font-size: 24px;
+    color: #ccc;
+    margin-top: 10px;
+}
+
+/* --- MODEL LIST (Vertical Stack) --- */
+.model-grid {
+    display: flex;
+    flex-direction: column;
+    /* Vertical stack */
+    align-items: center;
+    /* Center items */
+    gap: 20px;
+    padding: 20px;
+    width: 95vw;
+    /* Almost full width */
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+/* --- ACCORDION CARD STYLE --- */
+.model-card {
+    background-color: rgba(0, 0, 0, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 15px;
+    padding: 0;
+    /* Remove padding from container, let details handle it */
+    width: 100%;
+    /* Full width of container */
+    text-align: left;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+    color: white;
+    /* Subtle gradient */
+    background-image: linear-gradient(145deg, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
+}
+
+.model-card:hover {
+    border-color: #00d4ff;
+    transform: scale(1.01);
+    /* Slight pop */
+}
+
+/* --- EXPANDABLE SECTIONS --- */
+details {
+    width: 100%;
+}
+
+summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 20px 30px;
+    /* Clickable area padding */
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+summary::marker {
+    display: none;
+}
+
+/* Custom Arrow on the right */
+summary::after {
+    content: '▼';
+    color: #00ff88;
+    font-size: 18px;
+    transition: transform 0.3s;
+}
+
+details[open] summary::after {
+    transform: rotate(180deg);
+}
+
+/* Remove old arrow */
+summary::before {
+    display: none;
+}
+
+/* Title inside summary */
+.accordion-title {
+    font-size: 24px;
+    color: white;
+    font-weight: bold;
+    margin: 0;
+}
+
+.card-short-desc {
+    font-size: 16px;
+    color: #aaa;
+    margin-left: 20px;
+    font-style: italic;
+    display: none;
+    /* Hidden on mobile, shown on desktop optional */
+}
+
+@media (min-width: 768px) {
+    .card-short-desc {
+        display: inline-block;
+    }
+}
+
+.card-details-content {
+    padding: 20px 30px 30px 30px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: rgba(0, 0, 0, 0.3);
+    /* Slightly darker content area */
+    border-bottom-left-radius: 15px;
+    border-bottom-right-radius: 15px;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.card-detail-text {
+    font-size: 16px;
+    color: #ddd;
+    margin-bottom: 15px;
+    line-height: 1.6;
+}
+
+.card-formula {
+    background: rgba(0, 0, 0, 0.5);
+    padding: 15px;
+    border-radius: 10px;
+    margin: 20px 0;
+    font-size: 15px;
+    color: #00d4ff;
+    overflow-x: auto;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Full width button inside details */
+.learn-btn-full {
+    display: block;
+    width: 100%;
+    padding: 15px 0;
+    background: linear-gradient(90deg, #00d4ff, #00ff88);
+    color: black;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 18px;
+    border-radius: 10px;
+    text-align: center;
+    transition: filter 0.3s ease, transform 0.1s;
+    margin-top: 25px;
+    box-shadow: 0 4px 15px rgba(0, 212, 255, 0.2);
+}
+
+.learn-btn-full:hover {
+    filter: brightness(1.1);
+    transform: translateY(-2px);
+    cursor: pointer;
+}
+
+h4 {
+    margin: 20px 0 10px 0;
+    color: #00ff88;
+    /* Green headers inside */
+    font-size: 18px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* --- NAVBAR OVERRIDES (Existing) --- */
+.nav:hover {
+    color: #00d4ff;
 }

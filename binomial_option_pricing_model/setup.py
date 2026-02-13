@@ -14,7 +14,7 @@ if sys.platform == 'darwin':
 
 ext_modules = [Extension(
         'quantiv_engine', 
-        ['src/bindings.cpp','src/black_scholes.cpp','src/binomial.cpp','src/merton_model.cpp' ],
+        ['src/bindings.cpp','src/black_scholes.cpp','src/binomial.cpp','src/merton_model.cpp', 'src/heston_model.cpp', 'src/trinomial.cpp' ],
         include_dirs=['include',get_pybind_include(),get_pybind_include()],
         language='c++'
     ),

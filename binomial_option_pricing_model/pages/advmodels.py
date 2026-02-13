@@ -20,6 +20,7 @@ SLIDER_STYLE = {'marginBottom': '15px'}
 LABEL_STYLE = {'color': "#eef3f4", 'fontWeight': 'bold', 'fontSize': '14px', "marginLeft": "100px"}
 
 layout = html.Div([
+    dcc.Location(id='advmodels-url', refresh=False), # LISTENS TO URL
     # --- Store for this page ---
     # We use storage_type='session' so data persists when navigating to Greeks
  
@@ -150,15 +151,37 @@ def update_advanced_calculations(model, S, K, v, T, option_type, lam, mu, delta)
     used_python = False
     
     # 
-    if C_ENGINE_AVAILABLE and model == "Merton":
+    if C_ENGINE_AVAILABLE:
         try:
-            merton_engine = quantiv_engine.Merton()
             bsm_engine = quantiv_engine.BlackScholes()
-            res = merton_engine.calculate(S, K, T, r, v, lam, mu, delta, is_call)
-            price = res.price
-            for x in x_range:
-                y_vals.append(merton_engine.calculate(float(x), K, T, r, v, lam, mu, delta, is_call).price)
-                y_bsm.append(bsm_engine.calculate(float(x), K, T, v, is_call).price)
+            
+            if model == "Merton":
+                merton_engine = quantiv_engine.Merton()
+                res = merton_engine.calculate(S, K, T, r, v, lam, mu, delta, is_call)
+                price = res.price
+                for x in x_range:
+                    y_vals.append(merton_engine.calculate(float(x), K, T, r, v, lam, mu, delta, is_call).price)
+                    y_bsm.append(bsm_engine.calculate(float(x), K, T, v, is_call).price)
+
+            elif model == "Heston":
+                heston_engine = quantiv_engine.Heston()
+                # Heston params: kappa (mean rev), theta (long var), xi (vol of vol), rho (corr)
+                # Using slider mappings: 
+                # lam -> kappa, mu -> theta, delta -> xi. We need rho (default -0.5)
+                # For now mapping: lam->kappa, mu->theta (scaled?), delta->xi
+                # Let's use the sliders as is:
+                kappa = lam  # 0-5
+                theta = abs(mu) # 0-0.5 (approx)
+                xi = delta # 0-0.5
+                rho = -0.5 # Constant for now or add slider later
+                v0 = theta # Start at long term mean
+                
+                res = heston_engine.calculate(S, K, T, r, kappa, theta, xi, rho, v0, is_call)
+                price = res.price
+                for x in x_range:
+                    y_vals.append(heston_engine.calculate(float(x), K, T, r, kappa, theta, xi, rho, v0, is_call).price)
+                    y_bsm.append(bsm_engine.calculate(float(x), K, T, math.sqrt(theta), is_call).price)
+
         except Exception as e:
             print(f"C++ Engine Error: {e}")
             used_python = True
@@ -200,3 +223,24 @@ def update_advanced_calculations(model, S, K, v, T, option_type, lam, mu, delta)
     }
 
     return f"${price:.2f}", fig, store_data
+
+
+# --- URL PARSING CALLBACK ---
+@callback(
+    Output("adv_model_selector", "value"),
+    Input("advmodels-url", "search")
+)
+def update_adv_model_dropdown_from_url(search):
+    if not search:
+        return dash.no_update
+    
+    if "model=" in search:
+        try:
+            params = search.split("model=")[1].split("&")[0]
+            # URL: Merton -> Dropdown: Merton
+            # URL: Heston -> Dropdown: Heston
+            return params
+        except IndexError:
+            return dash.no_update
+    
+    return dash.no_update

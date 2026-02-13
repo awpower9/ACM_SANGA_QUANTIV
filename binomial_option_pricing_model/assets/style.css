@@ -3,32 +3,37 @@
 }
 
 body {
-    overflow: hidden; /* Prevent scrolling on the body */
-}
-body {
-   background-color: #131418;
-   background-image:
-               radial-gradient(circle at 10% 20%,rgba(236, 108, 16, 0.38) 0%,transparent 40%),
-               radial-gradient(circle at 90% 100%,rgb(77, 142, 246,0.38)0%,transparent 40%);
-   margin:0;
-   width: 100vw;
-   height: 100vh;
-   background-repeat: no-repeat;
-   color: aliceblue;
-   padding:0;
+    overflow-x: hidden;
+    /* Prevent horizontal scroll only */
+    overflow-y: auto;
+    /* Allow vertical scroll */
 }
 
-.slider .rc-slider-track{
+body {
+    background-color: #131418;
+    background-image:
+        radial-gradient(circle at 10% 20%, rgba(236, 108, 16, 0.38) 0%, transparent 40%),
+        radial-gradient(circle at 90% 100%, rgb(77, 142, 246, 0.38)0%, transparent 40%);
+    margin: 0;
+    width: 100vw;
+    min-height: 100vh;
+    /* Allow growth */
+    background-repeat: no-repeat;
+    color: aliceblue;
+    padding: 0;
+}
+
+.slider .rc-slider-track {
     background-color: rgb(106, 27, 176);
 }
 
-.slider .rc-slider-rail{
+.slider .rc-slider-rail {
     background-color: white;
 }
 
 .Select-control {
     background-color: transparent !important;
-    border: 1px solid rgba(255,255,255,0.3);
+    border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .Select-value-label {
@@ -36,7 +41,7 @@ body {
 }
 
 .Select-placeholder {
-    color: rgba(255,255,255,0.6) !important;
+    color: rgba(255, 255, 255, 0.6) !important;
 }
 
 .Select-arrow {
@@ -44,7 +49,7 @@ body {
 }
 
 .Select-menu-outer {
-    background-color: rgba(0,0,0,0.0) !important;
+    background-color: rgba(0, 0, 0, 0.0) !important;
     border: none;
 }
 
@@ -53,32 +58,32 @@ body {
     color: white !important;
 }
 
-.models1{
+.models1 {
     width: 20vw;
-    margin:30px 10px;
-    background-color:black;
+    margin: 30px 10px;
+    background-color: black;
     background-repeat: no-repeat;
-    background-image: radial-gradient(circle at 10% 10%,rgba(240,100,30,0.5)0%,transparent 40%),
-                      radial-gradient(circle at 90% 90%,rgba(30,100,250,0.5)0%,transparent 40%);
-    padding:10px 0;
+    background-image: radial-gradient(circle at 10% 10%, rgba(240, 100, 30, 0.5)0%, transparent 40%),
+        radial-gradient(circle at 90% 90%, rgba(30, 100, 250, 0.5)0%, transparent 40%);
+    padding: 10px 0;
     height: 340px;
     border-radius: 30px;
 }
 
-.sliders{
-    margin:10px 10px;
-    background-color:black;
-    width:23vw;
-    height:430px;
-    border-radius:30px;
-    padding:0 0;
-    display:flex;
-    flex-direction:column;
-    justify-content:space-evenly;
-    background-image:radial-gradient(circle at 10% 10%,rgba(240,102,18,0.5)0%,transparent 40%),
-                    radial-gradient(circle at 90% 90%,rgba(30,140,240,0.4)0%,transparent 40%);
+.sliders {
+    margin: 10px 10px;
+    background-color: black;
+    width: 23vw;
+    height: 430px;
+    border-radius: 30px;
+    padding: 0 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+    background-image: radial-gradient(circle at 10% 10%, rgba(240, 102, 18, 0.5)0%, transparent 40%),
+        radial-gradient(circle at 90% 90%, rgba(30, 140, 240, 0.4)0%, transparent 40%);
     background-repeat: no-repeat;
-       
+
 }
 
 .graph-card {
@@ -92,37 +97,36 @@ body {
     flex-direction: column;
     justify-content: space-evenly;
     background-image: radial-gradient(circle at 10% 10%, rgba(240, 102, 18, 0.5) 0%, transparent 40%),
-                      radial-gradient(circle at 90% 90%, rgba(30, 140, 240, 0.4) 0%, transparent 40%);
+        radial-gradient(circle at 90% 90%, rgba(30, 140, 240, 0.4) 0%, transparent 40%);
     background-repeat: no-repeat;
     overflow: hidden;
 }
 
 
 
-.tree{
+.tree {
     background-repeat: no-repeat;
-    background-image: radial-gradient(circle at 10% 90%,rgba(250,102,18,0.5)0%,transparent 40%),
-                     radial-gradient(circle at 90% 10%,rgba(30,130,250,0.4)0%,transparent 40%);
+    background-image: radial-gradient(circle at 10% 90%, rgba(250, 102, 18, 0.5)0%, transparent 40%),
+        radial-gradient(circle at 90% 10%, rgba(30, 130, 250, 0.4)0%, transparent 40%);
 }
 
-.optionprice{
-    margin: 0 10px ;
-    background-color:black;
-    width:23vw;
-    height:180px;
-    border-radius:30px;
+.optionprice {
+    margin: 0 10px;
+    background-color: black;
+    width: 23vw;
+    height: 180px;
+    border-radius: 30px;
     padding: 0;
     font-size: 40px;
     background-repeat: no-repeat;
-    background-image:radial-gradient(circle at 10% 10%,rgba(250,102,30,0.9)0%,transparent 80%),
-                     radial-gradient(circle at 90% 90%,rgba(30,100,250,0.9)0%,transparent 80%);
+    background-image: radial-gradient(circle at 10% 10%, rgba(250, 102, 30, 0.9)0%, transparent 80%),
+        radial-gradient(circle at 90% 90%, rgba(30, 100, 250, 0.9)0%, transparent 80%);
 }
 
-.inputs{
+.inputs {
     height: 80vh;
     display: flex;
     flex-direction: column;
-    justify-content:space-evenly;
-    margin:auto;
+    justify-content: space-evenly;
+    margin: auto;
 }
-
